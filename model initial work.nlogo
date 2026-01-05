@@ -1,3 +1,5 @@
+extensions [csv]
+
 ;;;;;;;;;;;;;;;;;;;;;;
 ;; TIPURI DE AGENTI ;;
 ;;;;;;;;;;;;;;;;;;;;;;
@@ -24,6 +26,7 @@ furnizori-own[
 ]
 
 globals [
+  ALREADY-FITTING-AGENTS
   NR-OF-EXPECTED-COMPETENCIES
   JOB-COMPETENCY-ARRAY
   JOB-COMPETENCY-ACCEPTED-VALUES
@@ -37,16 +40,19 @@ to setup
   init-globals
   print "Competencies: 1 2 3 4 5 6 7 8 9 10 11 12"
   set JOB-COMPETENCY-ARRAY  read-competency-list
+
   print (word "             " JOB-COMPETENCY-ARRAY)
 
   init-employees
   init-non-employees
+
+  set ALREADY-FITTING-AGENTS search-already-fitting
+  print (word "Already fitting agents for job: " ALREADY-FITTING-AGENTS)
   print (word "Total nr. of employees: " count angajati)
   print (word "Total nr. of non-employees: " count neangajati)
 end
 
 to go
-  search-if-fitting
   tick
   print "TICK"
   if (ticks = 50) [stop]
@@ -58,16 +64,23 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to-report read-competency-list
   let res-list []
-
+  let group-char-temp ""
+  ;; Iteram prin fiecare caracter din input-box-ul 'JobCompetencyList'
   foreach n-values length JobCompetencyList [idx -> idx][idx ->
-    let competency-for-idx item idx JobCompetencyList
-
-    if (competency-for-idx != " ") [
-      check-if-allowed-character competency-for-idx
-      set res-list lput competency-for-idx res-list
+    let curr-char item idx JobCompetencyList
+    ;; Cum in input-string putem avea elem. de tipul "1.5 2.5", acestea trebuie tratate ca fiind un element in lista (splituite in functie de curr-char=" ")
+    ifelse curr-char = " " [
+      if group-char-temp != "" [ ;; Daca avem o 'grupare' de caractere (ex: "1.5"), le adaugam in lista
+        check-if-allowed-character group-char-temp
+        set res-list lput group-char-temp res-list
+        set group-char-temp ""
+      ]
+    ] [
+      set group-char-temp word group-char-temp curr-char
     ]
   ]
-
+  ;; Adaugam ultima 'grupare' de caractere in lista, de asemenea
+  if group-char-temp != "" [ set res-list lput group-char-temp res-list ]
   check-if-expected-nr-of-competencies res-list
   report res-list
 end
@@ -77,17 +90,27 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to check-if-expected-nr-of-competencies [competency-list]
   if (length competency-list != NR-OF-EXPECTED-COMPETENCIES)[
-    error "There should be 12 competencies list!"
+    error word "There should be 12 competencies list! Nr. of competencies provided: " length competency-list
   ]
 end
 
 ;; Fn helper pentru validarea chars din input
 ; - arunca eroare in situatia in care este intalnit un char neasteptat
+; - trebuie sa fie intre 1-5 sau 'x'
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to check-if-allowed-character [char]
-  if not member? char JOB-COMPETENCY-ACCEPTED-VALUES [
-    error "Only characters [1,...,5] && \"x\" are allowed for the competencies list!"
+
+  if (char != "x")[
+    carefully [
+      let float-value-of-char read-from-string char
+      if (float-value-of-char < 1 or float-value-of-char > 5) [
+        error "Error that will be catched below"
+      ]
+    ] [
+      error "Only characters between [1;5] && \"x\" are allowed for the competencies list!"
+    ]
   ]
+
 end
 
 ;; Fn helper pentru initializarea var globale
@@ -98,6 +121,7 @@ to init-globals
   set JOB-COMPETENCY-ACCEPTED-VALUES ["1" "2" "3" "4" "5" "x"]
   set JOB-COMPETENCY-ARRAY []
   set EMPLOYEES-NONEMPLOYEES-MEAN-COMPETENCY-LIST [4.53	4.42	3.66	3.17	2.16	3.14	2.87	2.06	2.0	2.5	4.12	4.56]
+  set ALREADY-FITTING-AGENTS []
 end
 
 ;; Fn helper pentru initializarea angajatilor
@@ -151,8 +175,12 @@ to init-non-employees
   ]
 end
 
-to search-if-fitting
-  ask angajati [
+;; Fn helper pentru determinarea agentilor care ating deja pragul dorit al job comp.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+to-report search-already-fitting
+  let fitting-agents []
+  ask (turtle-set angajati neangajati) [
+    print (word "Check " self)
     let is-fitting true
 
     let idx 0
@@ -169,12 +197,18 @@ to search-if-fitting
 
         if (current-employee-comp-level < float-comp-searched-for)[
           set is-fitting false
-          print ("The current candidate is not fitting")
+          print (word "Candidate not fitting due to Competency " idx)
         ]
       ]
       set idx idx + 1
     ]
+
+    if (is-fitting = true) [
+      set fitting-agents lput self fitting-agents
+    ]
   ]
+
+  report fitting-agents
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -210,7 +244,7 @@ INPUTBOX
 252
 287
 JobCompetencyList
-5 x x x x x x x x x 3 x
+4.7 x x x x 3.5 x x x x 1 x
 1
 0
 String
