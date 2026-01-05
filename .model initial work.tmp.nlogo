@@ -58,7 +58,7 @@ to-report read-competency-list
     set idx idx + 1
   ]
 
-  if (length result != nr-of-expected-competencies)[
+  if (length result != 12)[
     error "There should be 12 competencies list!"
   ]
   report result
