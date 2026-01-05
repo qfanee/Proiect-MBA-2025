@@ -1,4 +1,61 @@
+;;;;;;;;;;;;;;;;;;;;;;
+;; TIPURI DE AGENTI ;;
+;;;;;;;;;;;;;;;;;;;;;;
+breed [neangajati neangajat]
+breed [angajati angajat]
+breed [furnizori furnizor]
 
+angajati-own [
+  ilc ;; individual learning capacity
+  nivel-comp ;; lista de 12 valori (C1–C12)
+  motivatie ;; 0.0 – 1.0
+  flexibilitate ;; 0.0 – 1.0
+  istoric-formare ;; lista cu "universitate" / "training"
+]
+
+neangajati-own [
+  ilc ;; individual learning capacity
+  nivel-comp ;; lista de 12 valori (C1–C12)
+  motivatie ;; 0.0 – 1.0
+  flexibilitate ;; 0.0 – 1.0
+  istoric-formare ;; lista cu "universitate" / "training"
+]
+
+furnizori-own[
+  tip ;; universitate / learning center
+]
+
+globals [
+ job-competency-array
+]
+
+to setup
+  print "Competencies: 1 2 3 4 5 6 7 8 9 10 11 12"
+  set job-competency-array read-competency-list
+  print (word "             " job-competency-array)
+end
+
+to-report read-competency-list
+  let result []
+
+  ; Add a space at the end to ensure the last item is caught
+  let input-text (word JobCompetencyList " ")
+
+  ; Loop through every character in the input box
+  let idx 0
+
+  while [idx < length input-text] [
+    let competency-for-idx item idx input-text
+
+    if (competency-for-idx != " ") [
+      set result lput competency-for-idx result
+    ]
+
+    set idx idx + 1
+  ]
+
+  report result
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
@@ -28,12 +85,12 @@ ticks
 30.0
 
 INPUTBOX
-4
-132
-198
-192
-CompetencyArray1
-5 x x x x x x x x x 4 x 3
+15
+84
+209
+144
+JobCompetencyList
+5 x x x x x x x x x 4 x
 1
 0
 String
@@ -46,6 +103,23 @@ CHOOSER
 jobcautat
 jobcautat
 "CEO" "CFO" "CTO"
+1
+
+BUTTON
+15
+21
+78
+54
+setup
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
 1
 
 @#$#@#$#@
