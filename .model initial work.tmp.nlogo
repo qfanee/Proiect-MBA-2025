@@ -9,7 +9,6 @@ angajati-own [
   ilc ;; individual learning capacity
   nivel-comp ;; lista de 12 valori (C1–C12)
   motivatie ;; 0.0 – 1.0
-  flexibilitate ;; 0.0 – 1.0
   istoric-formare ;; lista cu "universitate" / "training"
 ]
 
@@ -17,7 +16,6 @@ neangajati-own [
   ilc ;; individual learning capacity
   nivel-comp ;; lista de 12 valori (C1–C12)
   motivatie ;; 0.0 – 1.0
-  flexibilitate ;; 0.0 – 1.0
   istoric-formare ;; lista cu "universitate" / "training"
 ]
 
@@ -26,24 +24,33 @@ furnizori-own[
 ]
 
 globals [
-  nr-of-expected-competencies
-  job-competency-array
-  job-competency-accepted-values
+  NR-OF-EXPECTED-COMPETENCIES
+  JOB-COMPETENCY-ARRAY
+  JOB-COMPETENCY-ACCEPTED-VALUES
+  EMPLOYEES-NONEMPLOYEES-MEAN-COMPETENCY-LIST
 ]
 
 to setup
+  clear-all
+
   init-globals
   print "Competencies: 1 2 3 4 5 6 7 8 9 10 11 12"
-  update-global job-competency-array read-competency-list
-  print (word "             " job-competency-array)
+  set JOB-COMPETENCY-ARRAY  read-competency-list
+  print (word "             " JOB-COMPETENCY-ARRAY)
+
+  init-employees
+  init-non-employees
+  print (word "Total nr. of employees: " count angajati)
+  print (word "Total nr. of non-employees: " count neangajati)
 end
+
 
 ;; Fn helper pentru citirea listei competentelor din input
 ; - arunca eroare in situatia in care nu exista 12 competente in lista
 ; - intoarce o lista ce contine valorile competentelor
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to-report read-competency-list
-  let result []
+  let res-list []
 
   let idx 0
 
@@ -52,39 +59,93 @@ to-report read-competency-list
 
     if (competency-for-idx != " ") [
       check-if-allowed-character competency-for-idx
-      set result lput competency-for-idx result
+      set res-list lput competency-for-idx res-list
     ]
 
     set idx idx + 1
   ]
 
-  if (length result != 12)[
-    error "There should be 12 competencies list!"
-  ]
-  report result
+  check-if-expected-nr-of-competencies res-list
+  report res-list
 end
 
+;; Fn helper pentru validarea nr. de competente
+; - arunca eroare in situatia in care este intalnit un char neasteptat
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+to check-if-expected-nr-of-competencies [competency-list]
+  if (length competency-list != NR-OF-EXPECTED-COMPETENCIES)[
+    error "There should be 12 competencies list!"
+  ]
+end
 
+;; Fn helper pentru validarea chars din input
+; - arunca eroare in situatia in care este intalnit un char neasteptat
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to check-if-allowed-character [char]
-  if not member? char job-competency-accepted-values [
+  if not member? char JOB-COMPETENCY-ACCEPTED-VALUES [
     error "Only characters [1,...,5] && \"x\" are allowed for the competencies list!"
   ]
 end
 
+;; Fn helper pentru initializarea var globale
+; - arunca eroare in situatia in care este intalnit un char neasteptat
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to init-globals
-  set nr-of-expected-competencies 12
-  set job-competency-accepted-values ["1" "2" "3" "4" "5" "x"]
+  set NR-OF-EXPECTED-COMPETENCIES 12
+  set JOB-COMPETENCY-ACCEPTED-VALUES ["1" "2" "3" "4" "5" "x"]
+  set JOB-COMPETENCY-ARRAY []
+  set EMPLOYEES-NONEMPLOYEES-MEAN-COMPETENCY-LIST [4.53	4.42	3.66	3.17	2.16	3.14	2.87	2.06	2.0	2.5	4.12	4.56]
 end
 
-to update-global [global-var new-value]
-  set global-var new-value
+;; Fn helper pentru initializarea angajatilor
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+to init-employees
+  create-angajati nr-employees [
+    set ilc (random 101) / 100 ;; initializam 'ilc' cu valoare intre 0-1 (eg. 0, 0.01,...)
+
+    set nivel-comp [] ;; initializam 'nivel-comp' cu empty-list; Ulterior, lista va fi populata
+    let idx 0
+    ;; Populam fiecare dintre C1..C12 cu valori distribuite normal
+    while [idx < length EMPLOYEES-NONEMPLOYEES-MEAN-COMPETENCY-LIST][
+      let global-mean-competency-for-idx item idx EMPLOYEES-NONEMPLOYEES-MEAN-COMPETENCY-LIST
+      let normal-distribution-competency random-normal global-mean-competency-for-idx 0.5
+      set nivel-comp lput normal-distribution-competency nivel-comp
+      set idx idx + 1
+    ]
+
+    set motivatie (random 101) / 100 ;; initializam 'motivatie' cu valoare intre 0-1 (eg. 0, 0.01,...)
+
+    set istoric-formare [] ;; empty-list, momentan nu a invatat nimic
+  ]
+end
+
+;; Fn helper pentru initializarea neangajatilor
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+to init-non-employees
+  create-neangajati nr-non-employees [
+    set ilc (random 101) / 100 ;; initializam 'ilc' cu valoare intre 0-1 (eg. 0, 0.01,...)
+
+    set nivel-comp [] ;; initializam 'nivel-comp' cu empty-list; Ulterior, lista va fi populata
+    let idx 0
+    ;; Populam fiecare dintre C1..C12 cu valori distribuite normal
+    while [idx < length EMPLOYEES-NONEMPLOYEES-MEAN-COMPETENCY-LIST][
+      let global-mean-competency-for-idx item idx EMPLOYEES-NONEMPLOYEES-MEAN-COMPETENCY-LIST
+      let normal-distribution-competency random-normal global-mean-competency-for-idx 0.5
+      set nivel-comp lput normal-distribution-competency nivel-comp
+      set idx idx + 1
+    ]
+
+    set motivatie (random 101) / 100 ;; initializam 'motivatie' cu valoare intre 0-1 (eg. 0, 0.01,...)
+
+    set istoric-formare [] ;; empty-list, momentan nu a invatat nimic
+  ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
-10
-647
-448
+454
+17
+891
+455
 -1
 -1
 13.0
@@ -108,10 +169,10 @@ ticks
 30.0
 
 INPUTBOX
-15
-84
-209
-144
+58
+227
+252
+287
 JobCompetencyList
 5 x x x x x x x x x 5 x
 1
@@ -119,20 +180,20 @@ JobCompetencyList
 String
 
 CHOOSER
-47
-220
-185
-265
+56
+298
+194
+343
 jobcautat
 jobcautat
 "CEO" "CFO" "CTO"
 1
 
 BUTTON
-15
-21
-78
-54
+65
+32
+128
+65
 setup
 setup
 NIL
@@ -144,6 +205,36 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+58
+88
+230
+121
+nr-employees
+nr-employees
+0
+100
+9.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+59
+131
+231
+164
+nr-non-employees
+nr-non-employees
+0
+100
+0.0
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
