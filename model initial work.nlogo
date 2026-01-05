@@ -46,7 +46,9 @@ to setup
 end
 
 to go
+  search-if-fitting
   tick
+  print "TICK"
   if (ticks = 50) [stop]
 end
 
@@ -57,17 +59,13 @@ end
 to-report read-competency-list
   let res-list []
 
-  let idx 0
-
-  while [idx < length JobCompetencyList] [
+  foreach n-values length JobCompetencyList [idx -> idx][idx ->
     let competency-for-idx item idx JobCompetencyList
 
     if (competency-for-idx != " ") [
       check-if-allowed-character competency-for-idx
       set res-list lput competency-for-idx res-list
     ]
-
-    set idx idx + 1
   ]
 
   check-if-expected-nr-of-competencies res-list
@@ -109,18 +107,21 @@ to init-employees
     set ilc (random 101) / 100 ;; initializam 'ilc' cu valoare intre 0-1 (eg. 0, 0.01,...)
 
     set nivel-comp [] ;; initializam 'nivel-comp' cu empty-list; Ulterior, lista va fi populata
-    let idx 0
+
     ;; Populam fiecare dintre C1..C12 cu valori distribuite normal
-    while [idx < length EMPLOYEES-NONEMPLOYEES-MEAN-COMPETENCY-LIST][
+    foreach n-values length JOB-COMPETENCY-ARRAY [idx -> idx][idx ->
       let global-mean-competency-for-idx item idx EMPLOYEES-NONEMPLOYEES-MEAN-COMPETENCY-LIST
       let normal-distribution-competency random-normal global-mean-competency-for-idx 0.5
-      set nivel-comp lput normal-distribution-competency nivel-comp
-      set idx idx + 1
+
+      ;; Pentru a evita valorile out-of-expected-values
+      if (normal-distribution-competency > 5) [set nivel-comp lput 5 nivel-comp]  ;; Initializam cu max., daca este peste valoarea maxima
+      if (normal-distribution-competency < 1) [set nivel-comp lput 1 nivel-comp]  ;; Initializam cu min., daca este sub valoarea minima
+      if (normal-distribution-competency >= 1 and normal-distribution-competency <= 5) [set nivel-comp lput normal-distribution-competency nivel-comp]
+
+      set motivatie (random 101) / 100 ;; initializam 'motivatie' cu valoare intre 0-1 (eg. 0, 0.01,...)
+
+      set istoric-formare [] ;; empty-list, momentan nu a invatat nimic
     ]
-
-    set motivatie (random 101) / 100 ;; initializam 'motivatie' cu valoare intre 0-1 (eg. 0, 0.01,...)
-
-    set istoric-formare [] ;; empty-list, momentan nu a invatat nimic
   ]
 end
 
@@ -131,18 +132,48 @@ to init-non-employees
     set ilc (random 101) / 100 ;; initializam 'ilc' cu valoare intre 0-1 (eg. 0, 0.01,...)
 
     set nivel-comp [] ;; initializam 'nivel-comp' cu empty-list; Ulterior, lista va fi populata
-    let idx 0
+
     ;; Populam fiecare dintre C1..C12 cu valori distribuite normal
-    while [idx < length EMPLOYEES-NONEMPLOYEES-MEAN-COMPETENCY-LIST][
+    foreach n-values length JOB-COMPETENCY-ARRAY [idx -> idx][idx ->
       let global-mean-competency-for-idx item idx EMPLOYEES-NONEMPLOYEES-MEAN-COMPETENCY-LIST
       let normal-distribution-competency random-normal global-mean-competency-for-idx 0.5
-      set nivel-comp lput normal-distribution-competency nivel-comp
-      set idx idx + 1
+
+      ;; Pentru a evita valorile out-of-expected-values
+      if (normal-distribution-competency > 5) [set nivel-comp lput 5 nivel-comp]  ;; Initializam cu max., daca este peste valoarea maxima
+      if (normal-distribution-competency < 1) [set nivel-comp lput 1 nivel-comp]  ;; Initializam cu min., daca este sub valoarea minima
+      if (normal-distribution-competency >= 1 and normal-distribution-competency <= 5) [set nivel-comp lput normal-distribution-competency nivel-comp]
+
     ]
 
     set motivatie (random 101) / 100 ;; initializam 'motivatie' cu valoare intre 0-1 (eg. 0, 0.01,...)
 
     set istoric-formare [] ;; empty-list, momentan nu a invatat nimic
+  ]
+end
+
+to search-if-fitting
+  ask angajati [
+    let is-fitting true
+
+    let idx 0
+
+    while [(idx < length JOB-COMPETENCY-ARRAY) and (is-fitting = true)][
+
+      let stringified-comp-searched-for item idx JOB-COMPETENCY-ARRAY
+      let current-employee-comp-level item idx nivel-comp
+
+      if (stringified-comp-searched-for != "x") [
+        let float-comp-searched-for read-from-string stringified-comp-searched-for
+        print (word "Job Competency [" idx "] = min. " float-comp-searched-for)
+        print (word "Cur Competency [" idx "] = " current-employee-comp-level)
+
+        if (current-employee-comp-level < float-comp-searched-for)[
+          set is-fitting false
+          print ("The current candidate is not fitting")
+        ]
+      ]
+      set idx idx + 1
+    ]
   ]
 end
 @#$#@#$#@
@@ -179,7 +210,7 @@ INPUTBOX
 252
 287
 JobCompetencyList
-5 x x x x x x x x x 5 x
+5 x x x x x x x x x 3 x
 1
 0
 String
@@ -195,10 +226,10 @@ jobcautat
 1
 
 BUTTON
-65
-32
-128
-65
+60
+44
+123
+77
 setup
 setup
 NIL
@@ -220,7 +251,7 @@ nr-employees
 nr-employees
 0
 100
-9.0
+1.0
 1
 1
 NIL
@@ -242,10 +273,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-68
-86
-131
-119
+60
+87
+123
+120
 go
 go
 T
