@@ -90,7 +90,7 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to check-if-expected-nr-of-competencies [competency-list]
   if (length competency-list != NR-OF-EXPECTED-COMPETENCIES)[
-    error "There should be 12 competencies list! "
+    error word "There should be 12 competencies list! Nr. of competencies provided: " length competency-list
   ]
 end
 
@@ -118,7 +118,6 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to init-globals
   set NR-OF-EXPECTED-COMPETENCIES 12
-  set JOB-COMPETENCY-ACCEPTED-VALUES ["1" "2" "3" "4" "5" "x"]
   set JOB-COMPETENCY-ARRAY []
   set EMPLOYEES-NONEMPLOYEES-MEAN-COMPETENCY-LIST [4.53	4.42	3.66	3.17	2.16	3.14	2.87	2.06	2.0	2.5	4.12	4.56]
   set ALREADY-FITTING-AGENTS []
