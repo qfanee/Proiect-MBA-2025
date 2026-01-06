@@ -1,5 +1,3 @@
-extensions [csv]
-
 ;;;;;;;;;;;;;;;;;;;;;;
 ;; TIPURI DE AGENTI ;;
 ;;;;;;;;;;;;;;;;;;;;;;
@@ -12,6 +10,7 @@ angajati-own [
   nivel-comp ;; lista de 12 valori (C1–C12)
   motivatie ;; 0.0 – 1.0
   istoric-formare ;; lista cu "universitate" / "training"
+  tick-nivel-comp-atins
 ]
 
 neangajati-own [
@@ -19,6 +18,7 @@ neangajati-own [
   nivel-comp ;; lista de 12 valori (C1–C12)
   motivatie ;; 0.0 – 1.0
   istoric-formare ;; lista cu "universitate" / "training"
+  tick-nivel-comp-atins
 ]
 
 furnizori-own[
@@ -27,6 +27,7 @@ furnizori-own[
 
 globals [
   ALREADY-FITTING-AGENTS
+  FITTING-AGENTS-FOR-JOB
   NR-OF-EXPECTED-COMPETENCIES
   JOB-COMPETENCY-ARRAY
   EMPLOYEES-NONEMPLOYEES-MEAN-COMPETENCY-LIST
@@ -46,15 +47,27 @@ to setup
   init-non-employees
 
   set ALREADY-FITTING-AGENTS search-already-fitting
-  print (word "Already fitting agents for job: " ALREADY-FITTING-AGENTS)
+  print (word "Already fitting agents for job before simulation: " ALREADY-FITTING-AGENTS)
   print (word "Total nr. of employees: " count angajati)
   print (word "Total nr. of non-employees: " count neangajati)
 end
 
 to go
+  let total-agents-that-will-be-checked (count (turtle-set angajati neangajati) - length ALREADY-FITTING-AGENTS) ;; Excludem agentii care sunt 'already-fitting' dupa procedura de setup
+
+  ;; Modelul se va opri (nu are sens) daca nu exista posibilitatea unui nr. de agenti care sa intre in procesul de invatare suficient de mare incat nr. de joburi sa fie atins
+  if (total-agents-that-will-be-checked < required-fitting-for-job) [
+    error "The number of agents that should follow courses for enhancing their competencies in order to achieve the required number of agents fitting the job can never be reached!"
+  ]
+
+  ;; Modelul se va opri atunci cand numarul de agenti 'fitting-for-job' este atins, in functie de comp. acestora
+  if (check-if-required-fitting-agents = true) [
+    stop
+  ]
+
+  update-competency-level-university
+  print "NEW TICK"
   tick
-  print "TICK"
-  if (ticks = 50) [stop]
 end
 
 ;; Fn helper pentru citirea listei competentelor din input
@@ -120,6 +133,7 @@ to init-globals
   set JOB-COMPETENCY-ARRAY []
   set EMPLOYEES-NONEMPLOYEES-MEAN-COMPETENCY-LIST [4.53	4.42	3.66	3.17	2.16	3.14	2.87	2.06	2.0	2.5	4.12	4.56]
   set ALREADY-FITTING-AGENTS []
+  set FITTING-AGENTS-FOR-JOB []
 end
 
 ;; Fn helper pentru initializarea angajatilor
@@ -143,6 +157,7 @@ to init-employees
       set motivatie (random 101) / 100 ;; initializam 'motivatie' cu valoare intre 0-1 (eg. 0, 0.01,...)
 
       set istoric-formare [] ;; empty-list, momentan nu a invatat nimic
+      set tick-nivel-comp-atins [0 0 0 0 0 0 0 0 0 0 0 0]  ;; Cate tickuri i-au luat agentului pentru atingerea nivelului jobului, de la C1...C12.
     ]
   ]
 end
@@ -170,15 +185,17 @@ to init-non-employees
     set motivatie (random 101) / 100 ;; initializam 'motivatie' cu valoare intre 0-1 (eg. 0, 0.01,...)
 
     set istoric-formare [] ;; empty-list, momentan nu a invatat nimic
+    set tick-nivel-comp-atins [0 0 0 0 0 0 0 0 0 0 0 0] ;; Cate tickuri i-au luat agentului pentru atingerea nivelului jobului, de la C1....C12
   ]
 end
 
 ;; Fn helper pentru determinarea agentilor care ating deja pragul dorit al job comp.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; - un agent atinge pragul dorit al job comp. in situatia in care toate comp. sale sunt >= decat job comp. != 'x'
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to-report search-already-fitting
   let fitting-agents []
   ask (turtle-set angajati neangajati) [
-    print (word "Check " self)
+    print (word "Check if already suitable for job for: " self)
     let is-fitting true
 
     let idx 0
@@ -207,6 +224,88 @@ to-report search-already-fitting
   ]
 
   report fitting-agents
+end
+
+;; Fn helper apelata in cadrul fiecarui tick pentru cresterea comp. agentilor in functie de cursuri universitare.
+; - in cadrul cursurilor universitare, toate comp. agentului vor creste
+; - toate comp. agentului vor creste in functie de formula: %-learn-from-university * ILC * motivatie
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+to update-competency-level-university
+  let fitting-agents []
+  ask (turtle-set angajati neangajati) with [
+      not member? self ALREADY-FITTING-AGENTS and not member? self FITTING-AGENTS-FOR-JOB  ;; Excludem agentii care deja ating competentele dorite ale jobului
+  ][
+    print (word "Update competencies from university for: " self)
+
+    ;; Iteram prin fiecare competenta a agentului pentru a o updata cu noua valoare
+    foreach n-values length nivel-comp [idx -> idx][idx ->
+      let curr-competency item idx nivel-comp
+      let value-to-add ( (%-learn-from-university) / 100 * ilc * motivatie * curr-competency)
+
+      let updated-curr-competency 0
+      if ( (curr-competency + value-to-add) > 5)  [set updated-curr-competency 5] ;; Cresterea nu ar trebui sa depaseasca pragul de '5'
+      if ( (curr-competency + value-to-add) <= 5) [set updated-curr-competency (curr-competency + value-to-add)]
+
+      print (word "Old comp. [" idx "]=" curr-competency "  ### New comp. [" idx "]=" updated-curr-competency)
+
+      set nivel-comp replace-item idx nivel-comp updated-curr-competency  ;; Updatam nivel-comp al agentului cu noua valoare, dupa urmarea cursurilor universitare, pt tickul curent
+    ]
+  ]
+end
+
+;; Fn helper apelata in cadrul fiecarui tick. Aceasta fn. verifica daca criteriul de oprire al modelului este atins.
+; - itereaza prin toti agentii care nu sunt deja 'fitting' sau nu au devenit 'fitting' in urma cursurilor urmate
+; - adauga agentii care au devenit 'fit-for-job' in lista globala
+; - intoarce 'true' in situatia in care nr. dorit de agenti a fost atins; 'false' altfel (modelul va continua pentru FALSE)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+to-report check-if-required-fitting-agents
+  print (word "Inside check-if-required-fitting")
+  ifelse (length FITTING-AGENTS-FOR-JOB >= required-fitting-for-job)[   ;; Daca deja exista suficienti agenti dintre cei cu comp. 'updatate', programul ar trebui sa se opreasca
+    report true
+  ][ ;; Altfel, verificam daca exista alti agenti care pot fi 'fitting-for-job'
+
+    ask (turtle-set angajati neangajati) with [
+      not member? self ALREADY-FITTING-AGENTS and not member? self FITTING-AGENTS-FOR-JOB  ;; Excludem agentii care deja ating competentele dorite ale jobului
+    ] [
+      if (check-if-agent-fitting = true)[ ;; In situatia in care agentul este 'fitting-for-job', il adaugam in lista 'FITTING-AGENTS-FOR-JOB'
+        set FITTING-AGENTS-FOR-JOB lput self FITTING-AGENTS-FOR-JOB
+      ]
+    ]
+  ]
+
+  report length FITTING-AGENTS-FOR-JOB >= required-fitting-for-job
+end
+
+;; Fn helper pentru a verifica daca agentul curent poate fi calificat pentru job-ul dorit
+; - verifica comp. care sunt diferite de 'x'. Ex. comp. cautate pentru job: [4 x x 1] => doar comp[0] si comp[3] trebuie atinse
+; - in situatia in care comp. agentului sunt min. egale cu cele cautate => el este 'fitting-for-job' (TRUE), altfel FALSE
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+to-report check-if-agent-fitting
+
+  foreach n-values length JOB-COMPETENCY-ARRAY [idx -> idx][idx ->
+
+    let stringified-comp-searched-for item idx JOB-COMPETENCY-ARRAY
+
+    if (stringified-comp-searched-for != "x") [
+      let float-comp-searched-for read-from-string stringified-comp-searched-for
+      let current-employee-comp-level item idx nivel-comp
+
+      ;; Daca competenta(i) a fost atinsa in iteratia curenta, updatam idx. respectiv in tick-nivel-comp-atins
+      ;; Excludem comp. care deja au fost atinse
+      if ( (current-employee-comp-level >= float-comp-searched-for) and (item idx tick-nivel-comp-atins = 0) ) [
+        let current-ticks ticks
+        set tick-nivel-comp-atins replace-item idx tick-nivel-comp-atins current-ticks  ;; Updatam 'cat timp i-a luat agentului sa atinga comp(i)'
+      ]
+
+      ;; Fail-fast pentru prima comp. pentru care agentul nu este inca 'fitting'
+      if (current-employee-comp-level < float-comp-searched-for)[
+        print (word "Current agent: " self " is not yet prepared for job due to comp[" idx "]")
+        report false
+      ]
+    ]
+  ]
+
+  report true
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -242,20 +341,10 @@ INPUTBOX
 252
 287
 JobCompetencyList
-4.7 x x x x 3.5 x x x x 1 x
+3.5 x x 4 x 3 x x x x x x
 1
 0
 String
-
-CHOOSER
-56
-298
-194
-343
-jobcautat
-jobcautat
-"CEO" "CFO" "CTO"
-1
 
 BUTTON
 60
@@ -320,6 +409,36 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+263
+134
+438
+167
+%-learn-from-university
+%-learn-from-university
+0
+100
+10.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+57
+298
+229
+331
+required-fitting-for-job
+required-fitting-for-job
+0
+100
+1.0
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
