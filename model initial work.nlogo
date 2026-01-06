@@ -372,7 +372,7 @@ nr-employees
 nr-employees
 0
 100
-1.0
+17.0
 1
 1
 NIL
@@ -434,11 +434,29 @@ required-fitting-for-job
 required-fitting-for-job
 0
 100
-1.0
+7.0
 1
 1
 NIL
 HORIZONTAL
+
+PLOT
+55
+363
+424
+513
+Agenti ce se potrivesc jobului
+ticks
+Nr. persoane
+0.0
+0.0
+0.0
+0.0
+true
+true
+"" ""
+PENS
+"Pers. potrivite jobului" 1.0 0 -16777216 true "" "plot length FITTING-AGENTS-FOR-JOB"
 
 @#$#@#$#@
 ## WHAT IS IT?

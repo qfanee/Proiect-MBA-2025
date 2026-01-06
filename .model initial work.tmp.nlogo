@@ -299,13 +299,33 @@ to-report check-if-agent-fitting
 
       ;; Fail-fast pentru prima comp. pentru care agentul nu este inca 'fitting'
       if (current-employee-comp-level < float-comp-searched-for)[
-        print (word "Current agent: " self " is not yet prepared for job ")
+        print (word "Current agent: " self " is not yet prepared for job due to comp[" idx "]")
         report false
       ]
     ]
   ]
 
   report true
+end
+
+
+
+
+
+to update-bar-chart [ my-list ]
+  set-current-plot "plot 1" ; Ensure we are talking to the right plot
+  clear-plot                     ; Clear old bars so they
+
+
+  let target-indexes [0 1 2]
+
+  foreach target-indexes [ idx ->
+    let val item idx [3 4 5]     ; Get the value from the specific index
+
+    ; plotxy x y
+    ; We use 'idx' as the X position so the bars are spaced out
+    plotxy idx val
+  ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -372,7 +392,7 @@ nr-employees
 nr-employees
 0
 100
-1.0
+17.0
 1
 1
 NIL
@@ -434,11 +454,47 @@ required-fitting-for-job
 required-fitting-for-job
 0
 100
-1.0
+7.0
 1
 1
 NIL
 HORIZONTAL
+
+PLOT
+55
+363
+424
+513
+Agenti ce se potrivesc jobului
+ticks
+Nr. persoane
+0.0
+0.0
+0.0
+0.0
+true
+true
+"" ""
+PENS
+"Pers. potrivite jobului" 1.0 0 -16777216 true "" "plot length FITTING-AGENTS-FOR-JOB"
+
+PLOT
+990
+87
+1190
+237
+plot 1
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -16777216 true "update-bar-chart JOB-COMPETENCY-ARRAY" ""
 
 @#$#@#$#@
 ## WHAT IS IT?
