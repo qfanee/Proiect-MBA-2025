@@ -37,7 +37,6 @@ globals [
 
 to setup
   clear-all
-  reset-ticks
 
   init-globals
   print "Competencies: 1 2 3 4 5 6 7 8 9 10 11 12"
@@ -52,6 +51,8 @@ to setup
   print (word "Already fitting agents for job before simulation: " ALREADY-FITTING-AGENTS)
   print (word "Total nr. of employees: " count angajati)
   print (word "Total nr. of non-employees: " count neangajati)
+
+  reset-ticks
 end
 
 to go
@@ -63,6 +64,7 @@ to go
 
   ;; Modelul se va opri atunci cand numarul de agenti 'fitting-for-job' este atins, in functie de comp. acestora
   if (check-if-required-fitting-agents = true) [
+;    update-plots
     stop
   ]
 
@@ -306,9 +308,7 @@ end
 ; - intoarce 'true' in situatia in care nr. dorit de agenti a fost atins; 'false' altfel (modelul va continua pentru FALSE)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to-report check-if-required-fitting-agents
-  print (word "Fitting agents after updates: " FITTING-AGENTS-FOR-JOB)
   ifelse (length FITTING-AGENTS-FOR-JOB >= nr-of-jobs)[   ;; Daca deja exista suficienti agenti dintre cei cu comp. 'updatate', programul ar trebui sa se opreasca
-    print (word ": " FITTING-AGENTS-FOR-JOB)
     report true
   ][ ;; Altfel, verificam daca exista alti agenti care pot fi 'fitting-for-job'
 
@@ -320,7 +320,7 @@ to-report check-if-required-fitting-agents
       ]
     ]
   ]
-
+  print (word "Fitting agents after updates: " FITTING-AGENTS-FOR-JOB)
   report length FITTING-AGENTS-FOR-JOB >= nr-of-jobs
 end
 
@@ -389,7 +389,7 @@ INPUTBOX
 252
 287
 JobCompetencyList
-3.5 x x 5 x 5 x x x x x x
+x x x 5 x 5 x x x x x 2
 1
 0
 String
@@ -520,6 +520,60 @@ SLIDER
 1
 NIL
 HORIZONTAL
+
+PLOT
+1043
+32
+1424
+182
+Bar-chart with job-comp-list
+NIL
+NIL
+1.0
+12.0
+1.0
+5.0
+false
+false
+"  let res-list []\n  let group-char-temp \"\"\n  ;; Iteram prin fiecare caracter din input-box-ul 'JobCompetencyList'\n  foreach n-values length JobCompetencyList [idx -> idx][idx ->\n    let curr-char item idx JobCompetencyList\n    ;; Cum in input-string putem avea elem. de tipul \"1.5 2.5\", acestea trebuie tratate ca fiind un element in lista (splituite in functie de curr-char=\" \")\n    ifelse curr-char = \" \" [\n      if group-char-temp != \"\" [ ;; Daca avem o 'grupare' de caractere (ex: \"1.5\"), le adaugam in lista\n        check-if-allowed-character group-char-temp\n        set res-list lput group-char-temp res-list\n        set group-char-temp \"\"\n      ]\n    ] [\n      set group-char-temp word group-char-temp curr-char\n    ]\n  ]\n  ;; Adaugam ultima 'grupare' de caractere in lista, de asemenea\n  if group-char-temp != \"\" [ set res-list lput group-char-temp res-list ]\n  \n\n;; Creare bar-chart pe baza valorilor  \nlet i 0\nforeach res-list [ val ->\n  if val != \"x\" [\n    ;; Plot the value at index 'i'\n    plotxy i (read-from-string val)\n  ]\n  set i i + 1\n]" ""
+PENS
+"pen-0" 1.0 1 -7500403 true "" ""
+
+PLOT
+969
+228
+1169
+493
+Initial avg. values for comp.
+NIL
+NIL
+1.0
+12.0
+1.0
+5.0
+false
+false
+"  let all-agents (turtle-set angajati neangajati)\n  let initial-avg-comp-list []\n \n  foreach n-values 12 [idx -> idx][idx ->\n    let mean-comp-idx mean [item idx nivel-comp] of all-agents\n    set initial-avg-comp-list lput mean-comp-idx initial-avg-comp-list\n  ]\n  \n  ;; Creare bar-chart pe baza valorilor  \nlet i 0\nforeach initial-avg-comp-list [ val ->\n  if val != \"x\" [\n    ;; Plot the value at index 'i'\n    plotxy i val\n  ]\n  set i i + 1\n]" ""
+PENS
+"default" 1.0 1 -16777216 true "" ""
+
+PLOT
+1207
+228
+1436
+492
+Final avg. values for comp
+NIL
+NIL
+1.0
+12.0
+1.0
+5.0
+false
+false
+"\n    let all-agents (turtle-set angajati neangajati)\n    let final-avg-comp-list []\n    \n    foreach n-values 12 [idx -> idx][idx ->\n      let mean-comp-idx mean [item idx nivel-comp] of all-agents\n      set final-avg-comp-list lput mean-comp-idx final-avg-comp-list\n    ]\n    \n    ;; Creare bar-chart pe baza valorilor  \n    let i 0\n    foreach final-avg-comp-list [ val ->\n      if val != \"x\" [\n        ;; Plot the value at index 'i'\n        plotxy i val\n      ]\n      set-plot-pen-color black\n      set i i + 1\n    ]" "\n    let all-agents (turtle-set angajati neangajati)\n    let final-avg-comp-list []\n    \n    foreach n-values 12 [idx -> idx][idx ->\n      let mean-comp-idx mean [item idx nivel-comp] of all-agents\n      set final-avg-comp-list lput mean-comp-idx final-avg-comp-list\n    ]\n    \n    ;; Creare bar-chart pe baza valorilor  \n          set-plot-pen-color green\n    let i 0\n    foreach final-avg-comp-list [ val ->\n      if val != \"x\" [\n        ;; Plot the value at index 'i'\n        plotxy i val\n      ]\n      set i i + 1\n    ]"
+PENS
+"default" 1.0 1 -16777216 true "" ""
 
 @#$#@#$#@
 ## WHAT IS IT?
